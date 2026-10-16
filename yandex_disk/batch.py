@@ -35,6 +35,17 @@ def _expanded_path(value: str) -> Path:
 
 def _resolved_path(path: Path) -> Path:
     try:
+        # Windows non-strict resolve() also suppresses unfollowable symlinks.
+        # Validate the existing prefix strictly, while allowing new folders.
+        prefix = path
+        while True:
+            try:
+                prefix.resolve(strict=True)
+                break
+            except FileNotFoundError:
+                if prefix.parent == prefix:
+                    raise
+                prefix = prefix.parent
         return path.resolve()
     except (OSError, RuntimeError):
         raise ConfigurationError("Не удалось определить локальную папку назначения. Проверьте путь и символические ссылки.") from None

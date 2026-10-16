@@ -158,6 +158,9 @@ class RepeatFormTests(unittest.TestCase):
         preview_label = next(widget for widget in descendants(self.root)
                              if isinstance(widget, gui.ttk.Label)
                              and str(widget.cget("textvariable")) == str(self.app.previews_var))
+        folder_progress_label = next(widget for widget in descendants(self.root)
+                                     if isinstance(widget, gui.ttk.Label)
+                                     and str(widget.cget("textvariable")) == str(self.app.progress_text_var))
         minimum_width, minimum_height = self.root.minsize()
         self.root.geometry(f"{minimum_width}x{minimum_height}")
         self.root.deiconify()
@@ -170,7 +173,8 @@ class RepeatFormTests(unittest.TestCase):
                     self.start_run(repeat=True)
                     self.progress(downloaded=12345, previews=12345)
                 self.root.update()
-                for widget in (preview_control, preview_label, self.app.start_button, self.app.stop_button):
+                for widget in (preview_control, preview_label, folder_progress_label,
+                               self.app.start_button, self.app.stop_button):
                     self.assertTrue(widget.winfo_ismapped())
                     self.assertGreaterEqual(widget.winfo_width(), widget.winfo_reqwidth(), str(widget))
                     self.assertGreaterEqual(widget.winfo_height(), widget.winfo_reqheight(), str(widget))

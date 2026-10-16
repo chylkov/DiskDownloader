@@ -380,12 +380,15 @@ class DiskDownloaderApp:
         log_frame.bind("<Configure>", lambda event: status.configure(wraplength=max(240, event.width - 8)))
         progress_row = ttk.Frame(log_frame, style="Console.TFrame")
         progress_row.grid(row=2, column=0, columnspan=2, sticky="ew")
+        progress_row.columnconfigure(0, weight=1)
         self.progress = ttk.Progressbar(progress_row, mode="determinate", maximum=1)
-        self.progress.pack(side="left", fill="x", expand=True)
+        # Give the bar its own row so growing counters keep their full width
+        # in a narrow console, including with Windows font metrics.
+        self.progress.grid(row=0, column=0, columnspan=2, sticky="ew")
         ttk.Label(progress_row, textvariable=self.progress_text_var,
-                  style="ConsoleMuted.TLabel").pack(side="left", padx=(12, 0))
+                  style="ConsoleMuted.TLabel").grid(row=1, column=0, sticky="w", pady=(6, 0))
         previews_count = ttk.Label(progress_row, textvariable=self.previews_var, style="ConsoleMuted.TLabel")
-        previews_count.pack(side="left", padx=(12, 0))
+        previews_count.grid(row=1, column=1, sticky="e", padx=(12, 0), pady=(6, 0))
         Tooltip(previews_count, "Уменьшенные изображения, сохранённые за этот запуск во всех кругах. "
                                 "Они учитываются отдельно от оригиналов.")
         self.log_widget = tk.Text(log_frame, height=4, state="disabled", wrap="word", background=CONSOLE,

@@ -130,6 +130,33 @@ class BatchSettingsTests(unittest.TestCase):
         with self.assertRaises(ConfigurationError):
             load_settings(self.config)
 
+    def test_missing_tail_does_not_hide_a_windows_unresolvable_parent(self):
+        parent = self.base / "loop"
+        output = parent / "copy"
+        original_resolve = Path.resolve
+        error = OSError("Unfollowable Windows symlink")
+        error.winerror = 1921
+
+        def resolve(path, strict=False):
+            if path == output:
+                if strict:
+                    raise FileNotFoundError()
+                return output  # Windows non-strict resolve hides this error.
+            if path == parent:
+                if strict:
+                    raise error
+                return parent
+            return original_resolve(path, strict=strict)
+
+        with patch.object(Path, "resolve", autospec=True, side_effect=resolve):
+            with self.assertRaises(ConfigurationError):
+                FolderTask("/Фото", str(output))
+
+    def test_nonexistent_destination_is_accepted_without_creating_it(self):
+        output = self.base / "new" / "nested" / "copy"
+        self.assertEqual(FolderTask("/Фото", str(output)).output, str(output.resolve()))
+        self.assertFalse((self.base / "new").exists())
+
     def test_saves_owner_only_plan_without_credentials_or_creating_destination(self):
         output = self.base / "copy"
         settings = BatchSettings([FolderTask("/Фото", str(output))])
