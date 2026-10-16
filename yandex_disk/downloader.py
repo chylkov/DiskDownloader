@@ -162,12 +162,14 @@ def output_lock(state_dir: Path):
     try:
         if os.name == "nt":
             import msvcrt
-            stream.seek(0)
-            if not stream.read(1):
-                stream.write(b" ")
-                stream.flush()
-            stream.seek(0)
             try:
+                # A competing Windows byte-range lock can reject the read
+                # before locking() itself gets a chance to report contention.
+                stream.seek(0)
+                if not stream.read(1):
+                    stream.write(b" ")
+                    stream.flush()
+                stream.seek(0)
                 msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
             except OSError:
                 raise RecoveryError("Эту папку уже обрабатывает другой запуск") from None

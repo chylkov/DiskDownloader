@@ -1,5 +1,6 @@
 """Recover previews without ever treating them as verified original files."""
 import base64
+from contextlib import closing
 import errno
 import hashlib
 import json
@@ -56,7 +57,7 @@ class PreviewRecoveryTests(unittest.TestCase):
         self.assertEqual(self.target.read_bytes(), PNG)
         self.assertFalse((self.output / ".disk-downloader/previews").exists())
         self.api.preview_url.assert_called_once_with("/Фото/photo.jpg", size="XXXL")
-        with sqlite3.connect(self.output / ".disk-downloader/state.sqlite3") as connection:
+        with closing(sqlite3.connect(self.output / ".disk-downloader/state.sqlite3")) as connection:
             self.assertEqual(connection.execute("SELECT count(*) FROM files").fetchone()[0], 0)
             row = connection.execute("SELECT path,local_path,size,sha256 FROM previews").fetchone()
         self.assertEqual(row, ("Фото/photo.jpg", "Фото/photo.jpg", len(PNG), hashlib.sha256(PNG).hexdigest()))
@@ -83,7 +84,7 @@ class PreviewRecoveryTests(unittest.TestCase):
         self.assertEqual((self.output / "Фото/photo.jpg").read_bytes(), b"original photo")
         self.assertEqual(self.target.read_bytes(), b"original photo")
         self.assertEqual(self.api.preview_url.call_count, 1)
-        with sqlite3.connect(self.output / ".disk-downloader/state.sqlite3") as connection:
+        with closing(sqlite3.connect(self.output / ".disk-downloader/state.sqlite3")) as connection:
             self.assertEqual(connection.execute("SELECT count(*) FROM previews").fetchone()[0], 0)
             self.assertEqual(connection.execute("SELECT count(*) FROM files").fetchone()[0], 1)
         again = self.run_download(opener=FakeOpener(self.api))

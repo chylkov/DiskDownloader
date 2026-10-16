@@ -9,6 +9,7 @@ import os
 from pathlib import Path, PurePosixPath
 import tempfile
 import threading
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 import urllib.error
@@ -445,6 +446,21 @@ class DownloaderRecoveryTests(unittest.TestCase):
                 self.run_download(api)
         self.assertFalse((self.output / "file.txt").exists())
         self.assertTrue(self.run_download(api)[0].complete)
+
+    def test_windows_locked_byte_read_is_reported_without_entering_output_lock(self):
+        state_dir = mock.MagicMock()
+        stream = state_dir.__truediv__.return_value.open.return_value
+        # Windows byte-range locks also prevent reads by the competing handle.
+        stream.read.side_effect = PermissionError(13, "Permission denied")
+        native = SimpleNamespace(locking=mock.Mock(), LK_NBLCK=2, LK_UNLCK=0)
+        with mock.patch("yandex_disk.downloader.os", SimpleNamespace(name="nt")), \
+                mock.patch("yandex_disk.downloader.redirected_path", return_value=False), \
+                mock.patch.dict("sys.modules", {"msvcrt": native}):
+            with self.assertRaisesRegex(RecoveryError, "другой запуск"):
+                with output_lock(state_dir):
+                    self.fail("A competing run must never enter the locked output")
+        native.locking.assert_not_called()
+        stream.close.assert_called_once_with()
 
     def test_incomplete_chunked_http_stream_is_a_file_error_and_other_files_continue(self):
         api = FakeAPI({"broken.bin": b"0123456789", "healthy.txt": b"safe"})

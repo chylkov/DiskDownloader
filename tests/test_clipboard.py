@@ -124,7 +124,8 @@ class ClipboardTests(unittest.TestCase):
             root.tk.call = lambda *args: window_system
             with patch("yandex_disk.ui_clipboard.ClipboardSupport._install_edit_menu"):
                 support = install_clipboard_support(root)
-            sequences = ["<Control-v>", "<Control-V>", "<Control-Cyrillic_em>", "<<Paste>>"]
+            sequences = ["<Control-v>", "<Control-V>", "<Control-Cyrillic_em>",
+                         "<Control-Cyrillic_EM>", "<<Paste>>"]
             if window_system == "aqua":
                 sequences += ["<Command-v>", "<Command-V>", "<Command-Cyrillic_em>", "<Command-Cyrillic_EM>"]
             else:
@@ -245,12 +246,12 @@ class NativeClipboardTests(unittest.TestCase):
         self.assertTrue(self.support.paste(self.entry))
         self.assertEqual(self.entry.get(), "БЕЗОПАСНЫЙ_ТЕСТОВЫЙ_ТОКЕН")
 
-    def check_paste_shortcut(self, sequence):
+    def check_paste_shortcut(self, sequence, **event_options):
         self.root.deiconify()
         self.root.update()
         self.entry.focus_force()
         self.root.update()
-        self.entry.event_generate(sequence)
+        self.entry.event_generate(sequence, **event_options)
         self.root.update()
         self.assertEqual(self.entry.get(), "БЕЗОПАСНЫЙ_ТЕСТОВЫЙ_ТОКЕН")
 
@@ -262,7 +263,15 @@ class NativeClipboardTests(unittest.TestCase):
         self.check_paste_shortcut("<Control-v>")
 
     def test_real_ctrl_v_with_russian_layout(self):
-        self.check_paste_shortcut("<Control-Cyrillic_em>")
+        if self.support.window_system == "win32":
+            # Windows delivers the physical V key as VK_V even with a Russian
+            # layout. Tk's synthetic X11 Cyrillic keysym instead goes through
+            # VkKeyScanW and may have no keycode on the runner's active layout.
+            # Exercise the real Windows key representation without changing
+            # the user's layout; Cyrillic handlers are also checked above.
+            self.check_paste_shortcut("<KeyPress>", keycode=0x56, state=0x4)
+        else:
+            self.check_paste_shortcut("<Control-Cyrillic_em>")
 
     @unittest.skipUnless(sys.platform == "darwin", "Command shortcuts are macOS-only")
     def test_real_cmd_v_with_russian_layout(self):

@@ -120,8 +120,8 @@ class BatchSettingsTests(unittest.TestCase):
     def test_symlink_loop_in_destination_is_a_safe_configuration_error(self):
         first, second = self.base / "first", self.base / "second"
         from platform_helpers import symlink_or_skip
-        symlink_or_skip(self, first, second)
-        symlink_or_skip(self, second, first)
+        symlink_or_skip(self, first, second, directory=True)
+        symlink_or_skip(self, second, first, directory=True)
         with self.assertRaises(ConfigurationError):
             FolderTask("/Фото", str(first / "copy"))
         self.config.write_text(json.dumps({"version": 1, "tasks": [

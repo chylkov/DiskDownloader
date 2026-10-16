@@ -161,12 +161,15 @@ class RepeatFormTests(unittest.TestCase):
         minimum_width, minimum_height = self.root.minsize()
         self.root.geometry(f"{minimum_width}x{minimum_height}")
         self.root.deiconify()
+        # Windows maps a deiconified native window through its event queue;
+        # idle geometry work alone does not make its children visible yet.
+        self.root.update()
         for running in (False, True):
             with self.subTest(running=running):
                 if running:
                     self.start_run(repeat=True)
                     self.progress(downloaded=12345, previews=12345)
-                self.root.update_idletasks()
+                self.root.update()
                 for widget in (preview_control, preview_label, self.app.start_button, self.app.stop_button):
                     self.assertTrue(widget.winfo_ismapped())
                     self.assertGreaterEqual(widget.winfo_width(), widget.winfo_reqwidth(), str(widget))

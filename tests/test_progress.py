@@ -1,6 +1,7 @@
 """Saved-file progress is emitted only after a verified, recorded save."""
 from __future__ import annotations
 
+from contextlib import closing
 import hashlib
 from pathlib import Path
 import sqlite3
@@ -29,7 +30,7 @@ class SavedProgressTests(unittest.TestCase):
 
         def progress(snapshot):
             target = self.output / "nested/file.txt"
-            with sqlite3.connect(self.output / ".disk-downloader/state.sqlite3") as connection:
+            with closing(sqlite3.connect(self.output / ".disk-downloader/state.sqlite3")) as connection:
                 row = connection.execute("SELECT path,size,sha256 FROM files").fetchone()
             report_lock_available = downloader.report_lock.acquire(blocking=False)
             if report_lock_available:
